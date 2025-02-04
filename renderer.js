@@ -1,11 +1,11 @@
-const { Console } = require('console');
-const MediaRendererClient = require('upnp-mediarenderer-client');
-const { exec } = require('child_process');
-const os = require('os');
-const httpProxy = require('http-proxy');
+const { Console } = require("console");
+const MediaRendererClient = require("upnp-mediarenderer-client");
+const { exec } = require("child_process");
+const os = require("os");
+const httpProxy = require("http-proxy");
 
 // TODO: Ideally the author will accept the pull request and re-publish. Otherwise tie it to my fork.
-const Ytcr = require('yt-cast-receiver');
+const Ytcr = require("yt-cast-receiver");
 
 // Use ports 3000, 3001, 3002 etc for successive YTCRs
 const YTCR_BASE_PORT = 3000;
@@ -20,9 +20,7 @@ const PROXY_BASE_PORT = 8000;
  * It implements yt-cast-receiver.Player so that it can receive and translate casts from YouTube.
  */
 class Renderer extends Ytcr.Player {
-
-    constructor(location, index, timeout)
-    {
+    constructor(location, index, timeout) {
         // Call the Ytcr.Player constructor
         super();
 
@@ -37,7 +35,7 @@ class Renderer extends Ytcr.Player {
         this.client = new MediaRendererClient(location);
 
         // No errors so far
-        this.error = false
+        this.error = false;
 
         // Get device details
         const obj = this;
@@ -53,7 +51,9 @@ class Renderer extends Ytcr.Player {
             const manufacturer = description.manufacturer;
             const modelName = description.modelName;
             obj.friendlyName = `🔊 ${friendlyName} (${manufacturer} ${modelName})`;
-            console.log(`[${obj.friendlyName}]: New renderer created, timeout ${obj.timeout}`);
+            console.log(
+                `[${obj.friendlyName}]: New renderer created, timeout ${obj.timeout}`,
+            );
 
             // TODO Select audio or video according to the capabilities of the renderer
             // obj.client.getSupportedProtocols( function(error, protocols) {
@@ -67,15 +67,17 @@ class Renderer extends Ytcr.Player {
             // });
 
             // Create a youtube cast receiver
-            const options = {port: YTCR_BASE_PORT + obj.index,
-                             friendlyName: obj.friendlyName,
-                             manufacturer: description.manufacturer,
-                             modelName: description.modelName}; 
-            obj.ytcr = Ytcr.instance(obj, options);
+            const options = {
+                port: YTCR_BASE_PORT + obj.index,
+                brand: description.manufacturer,
+                model: description.modelName,
+                name: description.modelName,
+            };
+            obj.ytcr = new Ytcr(obj, options);
             obj.ytcr.start();
 
-            obj.ytcr.setDebug(true);
-            obj.ytcr.on('connected', client => {
+            obj.ytcr.setLogLevel(Ytcr.LOG_LEVELS.DEBUG);
+            obj.ytcr.on("connected", (client) => {
                 console.log(`Connected to ${client.name}`);
                 console.log(`${client}`);
             });
@@ -84,7 +86,9 @@ class Renderer extends Ytcr.Player {
 
     refresh() {
         this.lastSeenTime = Number(process.hrtime.bigint() / 1000000000n);
-        console.log("Refreshed renderer " + this.location + " to " + this.lastSeenTime);
+        console.log(
+            "Refreshed renderer " + this.location + " to " + this.lastSeenTime,
+        );
     }
 
     isStale() {
@@ -92,7 +96,7 @@ class Renderer extends Ytcr.Player {
         if (this.error) return true;
 
         // If we have not been refreshed (i.e. discovered again) in this.timeout, we are stale.
-        const now = Number(process.hrtime.bigint()  / 1000000000n);
+        const now = Number(process.hrtime.bigint() / 1000000000n);
         if (this.lastSeenTime + this.timeout < now) return true;
 
         return false;
@@ -102,59 +106,70 @@ class Renderer extends Ytcr.Player {
         const obj = this;
 
         // Call yt-dlp to get the audio URL
-        exec(`yt-dlp -f bestaudio[ext=m4a] --get-url https://www.youtube.com/watch?v=${videoId}`, function(err, stdout, stderr) {
-            if(err) {
-                console.log(`[${obj.friendlyName}]: Unable to get audio URL using yt-dlp. Using youtube-dl but this is slower!`);
+        exec(
+            `yt-dlp -f bestaudio[ext=m4a] --get-url https://www.youtube.com/watch?v=${videoId}`,
+            function(err, stdout, stderr) {
+                if (err) {
+                    console.log(
+                        `[${obj.friendlyName}]: Unable to get audio URL using yt-dlp. Using youtube-dl but this is slower!`,
+                    );
 
-                // Enable to see what went wrong
-                // console.log(err);
-                // if(stdout) {
-                //     console.log(stdout);
-                // }
-                // if(stderr) {
-                //     console.log(stderr);
-                // }
+                    // Enable to see what went wrong
+                    // console.log(err);
+                    // if(stdout) {
+                    //     console.log(stdout);
+                    // }
+                    // if(stderr) {
+                    //     console.log(stderr);
+                    // }
 
-                exec(`youtube-dl -f bestaudio[ext=m4a] --get-url https://www.youtube.com/watch?v=${videoId}`, function(err, stdout, stderr) {
-                    if(err) {
-                        console.log(`[${obj.friendlyName}]: Error getting URL from youtube-dl:`);
-                        // Enable to see what went wrong
-                        // console.log(err);
-                        // if(stdout) {
-                        //     console.log(stdout);
-                        // }
-                        // if(stderr) {
-                        //     console.log(stderr);
-                        // }
-                    } else {
-                        // Call the callback with the retrieved URL
-                        const audioUrl = stdout.toString().trim();
-                        console.log(`[${obj.friendlyName}]: Media URL: ${audioUrl}`);
-                        callback(audioUrl);
-                    }
-                });
-            }
-            else {
-                // Call the callback with the retrieved URL
-                const audioUrl = stdout.toString().trim();
-                console.log(`[${obj.friendlyName}]: Media URL: ${audioUrl}`);
-                callback(audioUrl);
-            }
-        });
+                    exec(
+                        `youtube-dl -f bestaudio[ext=m4a] --get-url https://www.youtube.com/watch?v=${videoId}`,
+                        function(err, stdout, stderr) {
+                            if (err) {
+                                console.log(
+                                    `[${obj.friendlyName}]: Error getting URL from youtube-dl:`,
+                                );
+                                // Enable to see what went wrong
+                                // console.log(err);
+                                // if(stdout) {
+                                //     console.log(stdout);
+                                // }
+                                // if(stderr) {
+                                //     console.log(stderr);
+                                // }
+                            } else {
+                                // Call the callback with the retrieved URL
+                                const audioUrl = stdout.toString().trim();
+                                console.log(`[${obj.friendlyName}]: Media URL: ${audioUrl}`);
+                                callback(audioUrl);
+                            }
+                        },
+                    );
+                } else {
+                    // Call the callback with the retrieved URL
+                    const audioUrl = stdout.toString().trim();
+                    console.log(`[${obj.friendlyName}]: Media URL: ${audioUrl}`);
+                    callback(audioUrl);
+                }
+            },
+        );
     }
 
     /**
      * The methods implementing yt-cast-receiver.Player
      */
     async play(videoId, position = 0) {
-        console.log(`[${this.friendlyName}]: Play ${videoId} at position ${position}s`);
+        console.log(
+            `[${this.friendlyName}]: Play ${videoId} at position ${position}s`,
+        );
         const obj = this;
 
         this.getAudioUrl(videoId, function(audioUrl) {
             const url = new URL(audioUrl);
 
             // Stop the existing proxy (if there is one)
-            if(obj.proxy) {
+            if (obj.proxy) {
                 obj.proxy.close();
             }
 
@@ -164,9 +179,9 @@ class Renderer extends Ytcr.Player {
                 target: {
                     protocol: url.protocol,
                     host: url.host,
-                    port: url.port || 443
+                    port: url.port || 443,
                 },
-                changeOrigin: true
+                changeOrigin: true,
             };
             obj.proxy = httpProxy.createProxyServer(proxyOptions);
             obj.proxy.listen(proxyPort);
@@ -176,14 +191,12 @@ class Renderer extends Ytcr.Player {
             const rendererUrl = `http://${hostname}:${proxyPort}/${url.pathname}${url.search}`;
 
             // Load and play the URL on the renderer
-            const options = { autoplay: true,
-                                contentType: 'audio/mp4' };
+            const options = { autoplay: true, contentType: "audio/mp4" };
             obj.client.load(rendererUrl, options, function(err, result) {
-                if(err) {
-                    console.log(`[${obj.friendlyName}]: Error loading media:`)
+                if (err) {
+                    console.log(`[${obj.friendlyName}]: Error loading media:`);
                     console.log(err);
-                }
-                else {
+                } else {
                     obj.notifyPlayed();
                 }
             });
@@ -229,7 +242,7 @@ class Renderer extends Ytcr.Player {
     async stop() {
         console.log(`[${this.friendlyName}]: Stop`);
         const obj = this;
-        
+
         // Stop the dlna renderer
         this.client.stop(function(err, result) {
             if (err) {
@@ -245,7 +258,9 @@ class Renderer extends Ytcr.Player {
     }
 
     async seek(position, statusBeforeSeek) {
-        console.log(`[${this.friendlyName}]: Seek to ${position}s, statusBeforeSeek ${statusBeforeSeek}`);
+        console.log(
+            `[${this.friendlyName}]: Seek to ${position}s, statusBeforeSeek ${statusBeforeSeek}`,
+        );
         const obj = this;
 
         // Tell the dlna renderer to seek
@@ -268,7 +283,7 @@ class Renderer extends Ytcr.Player {
 
         const promise = new Promise(function(resolve, reject) {
             obj.client.getVolume(function(err, result) {
-                if(err) {
+                if (err) {
                     console.log(`[${obj.friendlyName}]: getVolume error:`);
                     console.log(err);
                     reject(err);
@@ -276,7 +291,7 @@ class Renderer extends Ytcr.Player {
                     console.log(`[${obj.friendlyName}]: getVolume ${result}`);
                     resolve(result);
                 }
-            })
+            });
         });
 
         return promise;
@@ -307,7 +322,7 @@ class Renderer extends Ytcr.Player {
 
         const promise = new Promise(function(resolve, reject) {
             obj.client.getPosition(function(err, result) {
-                if(err) {
+                if (err) {
                     console.log(`[${obj.friendlyName}]: getPosition error:`);
                     console.log(err);
                     reject(err);
@@ -315,7 +330,7 @@ class Renderer extends Ytcr.Player {
                     console.log(`[${obj.friendlyName}]: getPosition ${result}`);
                     resolve(result);
                 }
-            })
+            });
         });
 
         return promise;
@@ -328,7 +343,7 @@ class Renderer extends Ytcr.Player {
 
         const promise = new Promise(function(resolve, reject) {
             obj.client.getDuration(function(err, result) {
-                if(err) {
+                if (err) {
                     console.log(`[${obj.friendlyName}]: getDuration error:`);
                     console.log(err);
                     reject(err);
@@ -336,7 +351,7 @@ class Renderer extends Ytcr.Player {
                     console.log(`[${obj.friendlyName}]: getDuration ${result}`);
                     resolve(result);
                 }
-            })
+            });
         });
 
         return promise;

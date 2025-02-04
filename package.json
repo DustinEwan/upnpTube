@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mas94uk/upnpTube.git"
+    "url": "git+https://github.com/DustinEwan/upnpTube.git"
   },
   "keywords": [
     "youtube",
@@ -18,17 +18,17 @@
     "audio",
     "music"
   ],
-  "author": "Mark Smith",
+  "author": "Dustin Ewan (Original Author: Mark Smith)",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/mas94uk/upnpTube/issues"
+    "url": "https://github.com/DustinEwan/upnpTube/issues"
   },
-  "homepage": "https://github.com/mas94uk/upnpTube#readme",
+  "homepage": "https://github.com/DustinEwan/upnpTube#readme",
   "dependencies": {
     "http-proxy": "^1.18.1",
     "node-ssdp": "^4.0.1",
     "upnp-mediarenderer-client": "^1.4.0",
-    "yt-cast-receiver": "git+https://git@github.com/mas94uk/yt-cast-receiver.git"
+    "yt-cast-receiver": "^1.3.1"
   },
   "bin": {
     "upnpTube": "./index.js"
